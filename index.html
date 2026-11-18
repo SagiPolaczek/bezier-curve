@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7f7f1"><title>Bézier playground · Fundamentals of Computer Graphics</title>
+<style>
+:root{--ink:#182d2b;--muted:#4e6461;--line:#ccd7d1;--teal:#007a76;--gold:#b86808;--blue:#3776a7;font:16px/1.45 "DM Sans",Arial,sans-serif;color:var(--ink);background:#f6f7f1}*{box-sizing:border-box}body{margin:0}main{max-width:1220px;margin:auto;padding:26px clamp(16px,4vw,56px) 42px}header{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding-bottom:17px;font-size:14px;font-weight:600}header span:last-child{font-weight:400;color:var(--muted)}h1{font:normal clamp(40px,5vw,65px)/1.04 "Instrument Serif",Georgia,serif;letter-spacing:-.055em;margin:28px 0 7px}p{margin:0;color:var(--muted)}.head,.row,.modes,.transport,.readhead{display:flex;align-items:center}.head{justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}.modes{border:1px solid #a6b8b2;border-radius:8px;padding:3px;gap:2px;background:white}button{font:inherit;color:var(--ink);background:transparent;cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid #3776a7;outline-offset:3px}.modes button{font-size:14px;font-weight:650;border:0;border-radius:5px;padding:8px 15px}.modes button[aria-pressed=true],#play{background:#173f3d;color:white}.workspace{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(285px,1fr);border:1px solid var(--line);border-radius:14px;overflow:hidden;background:white}.plot{min-width:0}.row{padding:14px 21px;justify-content:space-between;gap:10px}.row strong{font-size:16px}.reset{border:0;text-decoration:underline;text-underline-offset:4px;color:var(--muted);font-size:14px}.plane{display:block;width:100%;height:auto;aspect-ratio:600/400;background:#fcfdf9;touch-action:none}.plane .point{cursor:grab;outline:none}.plane .point:focus .disk{stroke:#168b86;stroke-width:4}.plane .point:active{cursor:grabbing}.plane text{font:13px "IBM Plex Mono",Menlo,monospace;fill:var(--muted);pointer-events:none}.plane .ptlabel{font-size:15px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:#fcfdf9;stroke-width:4px}.transport{gap:14px;padding:18px 20px;border-top:1px solid var(--line)}#play{border:0;border-radius:6px;padding:8px 12px;min-width:76px}input[type=range]{min-width:60px;flex:1;accent-color:var(--teal)}output,code,.coords{font-family:"IBM Plex Mono",Menlo,monospace;font-variant-numeric:tabular-nums}aside{padding:19px 22px;border-left:1px solid var(--line);background:#f4f8f4}.readhead{align-items:baseline;justify-content:space-between;gap:12px}h2{font-size:17px;letter-spacing:-.02em;margin:0}#result{font:normal 29px/1.2 Georgia,serif;color:#006e6a;margin:9px 0 18px}.round{padding:10px 0;border-top:1px solid var(--line)}.round b{font-size:14px}.coords{display:block;font-size:13px;margin-top:3px;line-height:1.6}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}.rule{font-size:14px;margin:15px 0 1px}.codeblock{margin-top:18px;background:#172e2c;border-radius:9px;padding:16px 20px;color:#fff}.codeblock h2{color:#aed0c9;font-size:13px;font-weight:500;margin-bottom:6px}.codeblock code{display:block;color:#f5d994;font-size:15px;overflow-wrap:anywhere}.foot{margin-top:12px;font-size:13px}.controls{font-size:13px;color:var(--muted)}label{cursor:pointer}input[type=checkbox]{accent-color:var(--teal)}@media(max-width:780px){.workspace{grid-template-columns:1fr}aside{border-left:0;border-top:1px solid var(--line)}.head{align-items:flex-start}.plane{min-height:230px}.transport{padding:14px}.round{padding:8px 0}}@media(max-width:440px){header{align-items:flex-start;font-size:12px}.row{padding:12px}.controls{font-size:12px}.transport{gap:8px}output{font-size:14px}}
+</style></head><body><main>
+<header><span>Fundamentals of Computer Graphics</span><span>Recitation 5</span></header>
+<h1>Bézier playground</h1><div class="head"><p>Drag a control point, then move <i>t</i> to trace the curve.</p><div class="modes" aria-label="Curve degree" role="group"><button id="quadratic">Quadratic</button><button id="cubic">Cubic</button></div></div>
+<div class="workspace"><section class="plot" aria-label="Interactive curve"><div class="row"><strong>Control points</strong><label class="controls"><input type="checkbox" id="construction" checked> Show construction</label><button class="reset" id="reset">Reset</button></div>
+<svg class="plane" id="plane" viewBox="0 0 600 400" aria-label="Bézier curve and draggable control points"><defs><pattern id="grid" x="140" y="42" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M80 0H0V80" fill="none" stroke="#dce4dc" stroke-width="1.4"/></pattern></defs><rect width="600" height="400" fill="url(#grid)"/><g id="axes"></g><g id="drawing"></g><g id="handles"></g></svg>
+<div class="transport"><button id="play">▶ Play</button><input id="slider" aria-label="Curve parameter t" type="range" min="0" max="1" step=".001" value=".5"><output id="time" for="slider"></output></div></section>
+<aside><div class="readhead"><h2>de Casteljau’s construction</h2></div><p class="rule">Use the same <i>t</i> between each pair of neighbors.</p><div id="result"></div><div id="rounds"></div><p class="foot" id="formula"></p></aside></div>
+<div class="codeblock"><h2>SVG path</h2><code id="code"></code></div><p class="foot">Coordinates use SVG drawing units. Positive y points down. Focus a control point and use the arrow keys to move it.</p>
+</main><script>
+'use strict';
+const byId=id=>document.getElementById(id);
+const presets={quadratic:[[0,4],[2,0],[4,4]],cubic:[[0,4],[1,0],[3,0],[4,4]]};
+const colors={blue:'#3776a7',gold:'#cc7817',teal:'#007a76',ink:'#192c2b'};
+const sub=['₀','₁','₂','₃'];
+const plane=byId('plane'), handles=byId('handles'), slider=byId('slider');
+const pointSets=Object.fromEntries(Object.entries(presets).map(([k,v])=>[k,v.map(p=>p.slice())]));
+let mode=location.hash==='#cubic'?'cubic':'quadratic',t=.5,frame=null,drag=null;
+const px=x=>140+80*x,py=y=>42+80*y;
+const fmt=n=>String(+n.toFixed(3));
+const coord=p=>'('+p.map(fmt).join(', ')+')';
+const position=p=>[px(p[0]),py(p[1])].join(',');
+const mix=(a,b)=>a.map((x,i)=>(1-t)*x+t*b[i]);
+const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
+function svg(tag,attrs,parent){
+ const e=document.createElementNS('http://www.w3.org/2000/svg',tag);
+ for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);
+ parent.append(e);return e;
+}
+const axes=byId('axes');
+for(let i=0;i<=4;i++){
+ svg('text',{x:px(i),y:18,'text-anchor':'middle'},axes).textContent=i;
+ svg('text',{x:20,y:py(i)+4},axes).textContent=i;
+}
+svg('text',{x:570,y:18},axes).textContent='x →';
+svg('text',{x:15,y:390},axes).textContent='y ↓';
+function draw(){
+ const points=pointSets[mode],cubic=mode==='cubic',command=cubic?'C':'Q',symbol=cubic?'B':'Q';
+ const levels=[points];
+ while(levels.at(-1).length>1){
+  const prev=levels.at(-1);levels.push(prev.slice(1).map((p,i)=>mix(prev[i],p)));
+ }
+ const result=levels.at(-1)[0],drawing=byId('drawing'),rounds=byId('rounds');
+ drawing.replaceChildren();rounds.replaceChildren();
+ const path=(pts,mapper)=>'M '+mapper(pts[0])+' '+command+' '+pts.slice(1).map(mapper).join(' ');
+ const poly=(pts,color,width,dash='')=>svg('polyline',{points:pts.map(position).join(' '),fill:'none',stroke:color,'stroke-width':width,'stroke-dasharray':dash},drawing);
+ poly(points,'#97a7a1',1.7,'5 4');
+ svg('path',{d:path(points,position),fill:'none',stroke:colors.teal,'stroke-width':4,'stroke-linecap':'round'},drawing);
+ for(let i=1;i<levels.length;i++){
+  const pts=levels[i],last=pts.length===1,color=last?colors.teal:cubic&&i===1?colors.blue:colors.gold;
+  if(byId('construction').checked||last){
+   if(!last)poly(pts,color,2);
+   for(const p of pts)svg('circle',{cx:px(p[0]),cy:py(p[1]),r:last?7:5,fill:color,stroke:'#fff','stroke-width':1.5},drawing);
+  }
+  const section=document.createElement('div');section.className='round';
+  const title=document.createElement('b'),dot=document.createElement('span');dot.className='dot';dot.style.background=color;
+  title.append(dot,'Round '+i+' · '+pts.length+(pts.length===1?' point':' points'));
+  const values=document.createElement('span');values.className='coords';values.textContent=pts.map(coord).join('   ');
+  section.append(title,values);rounds.append(section);
+ }
+ points.forEach((p,i)=>{
+  const g=handles.children[i];g.setAttribute('transform','translate('+position(p)+')');
+  g.setAttribute('aria-label','Move P'+i+' '+coord(p));g.lastChild.textContent='P'+sub[i];
+ });
+ slider.value=t;byId('time').textContent='t = '+t.toFixed(3);
+ byId('result').textContent=symbol+'('+fmt(t)+') = '+coord(result);
+ byId('code').textContent='<path d="'+path(points,p=>p.map(fmt).join(' '))+'" fill="none" stroke="#007a76" stroke-width="0.05" />';
+ byId('formula').textContent=cubic?'B(t) = (1−t)³P₀ + 3(1−t)²tP₁ + 3(1−t)t²P₂ + t³P₃':'Q(t) = (1−t)²P₀ + 2(1−t)tP₁ + t²P₂';
+}
+function stop(){if(frame!==null)cancelAnimationFrame(frame);frame=null;byId('play').textContent='▶ Play';}
+function setMode(m){
+ stop();drag=null;mode=m;handles.replaceChildren();
+ for(const k of Object.keys(presets))byId(k).setAttribute('aria-pressed',String(k===mode));
+ pointSets[mode].forEach((p,i)=>{
+  const g=svg('g',{class:'point',tabindex:0,role:'button','data-index':i},handles);
+  svg('circle',{r:16,fill:'transparent'},g);
+  svg('circle',{class:'disk',r:6,fill:colors.ink,stroke:'#fff','stroke-width':2},g);
+  svg('text',{class:'ptlabel',x:9,y:-10},g);
+ });
+ draw();
+}
+function move(i,x,y){
+ pointSets[mode][i]=[clamp(Math.round(x*100)/100,-1.4,5.4),clamp(Math.round(y*100)/100,-.15,4.25)];draw();
+}
+handles.addEventListener('pointerdown',e=>{
+ const g=e.target.closest('.point');if(!g||drag||e.button!==0)return;
+ stop();g.focus();drag={index:+g.dataset.index,id:e.pointerId};plane.setPointerCapture(e.pointerId);e.preventDefault();
+});
+plane.addEventListener('pointermove',e=>{
+ if(!drag||drag.id!==e.pointerId)return;
+ const pt=new DOMPoint(e.clientX,e.clientY).matrixTransform(plane.getScreenCTM().inverse());
+ move(drag.index,(pt.x-140)/80,(pt.y-42)/80);
+});
+plane.addEventListener('lostpointercapture',()=>{drag=null});
+handles.addEventListener('keydown',e=>{
+ const directions={ArrowRight:[1,0],ArrowLeft:[-1,0],ArrowUp:[0,-1],ArrowDown:[0,1]},d=directions[e.key];
+ if(!d)return;e.preventDefault();stop();const i=+e.target.closest('.point').dataset.index,p=pointSets[mode][i];move(i,p[0]+d[0]*.1,p[1]+d[1]*.1);
+});
+for(const k of Object.keys(presets))byId(k).onclick=()=>{setMode(k);history.replaceState(null,'','#'+k)};
+byId('reset').onclick=()=>{pointSets[mode]=presets[mode].map(p=>p.slice());t=.5;byId('construction').checked=true;setMode(mode)};
+slider.oninput=()=>{stop();t=+slider.value;draw()};
+byId('construction').onchange=draw;
+byId('play').onclick=()=>{
+ if(frame!==null){stop();return}
+ if(t>=1)t=0;
+ const start=performance.now()-t*6500;
+ function tick(now){t=clamp((now-start)/6500,0,1);draw();if(t>=1)stop();else frame=requestAnimationFrame(tick)}
+ byId('play').textContent='Ⅱ Pause';frame=requestAnimationFrame(tick);
+};
+setMode(mode);
+</script></body></html>
